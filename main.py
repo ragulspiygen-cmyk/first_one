@@ -2,15 +2,11 @@ from dotenv import load_dotenv
 import os
 import pandas as pd
 
-# ------------------------
-# Local imports
-# ------------------------
+
 from note_engine import note_engine
 from prompts import new_prompt, instruction_str, context
 
-# ------------------------
-# LlamaIndex imports
-# ------------------------
+
 from llama_index.core import Settings, VectorStoreIndex
 from llama_index.core.tools import QueryEngineTool, ToolMetadata
 from llama_index.llms.groq import Groq
@@ -18,21 +14,15 @@ from llama_index.experimental.query_engine.pandas import PandasQueryEngine
 from llama_index.readers.file import PDFReader
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
-# ------------------------
-# Load environment
-# ------------------------
+
 load_dotenv()
 
-# ======================================================
-# EMBEDDINGS (FREE, LOCAL — REQUIRED FOR PDF SEARCH)
-# ======================================================
+
 Settings.embed_model = HuggingFaceEmbedding(
     model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
 
-# ======================================================
-# GROQ LLM CONFIG
-# ======================================================
+
 GROQ_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_KEY:
     raise RuntimeError("❌ GROQ_API_KEY missing in .env")
@@ -61,9 +51,7 @@ population_query_engine.update_prompts({
     "pandas_prompt": new_prompt
 })
 
-# ======================================================
-# INDIA PDF (UNSTRUCTURED KNOWLEDGE — MAIN SOURCE)
-# ======================================================
+
 pdf_path = os.path.join("data", "India.pdf")
 if not os.path.exists(pdf_path):
     raise FileNotFoundError("❌ India.pdf not found")
@@ -77,9 +65,7 @@ pdf_query_engine = pdf_index.as_query_engine(
     similarity_top_k=6
 )
 
-# ======================================================
-# INTELLIGENT DISPATCH (NO KEYWORDS)
-# ======================================================
+
 def dispatch(prompt: str):
     lp = prompt.lower().strip()
 
@@ -90,18 +76,15 @@ def dispatch(prompt: str):
         note_text = m.group(1) if m else prompt
         return f" {note_engine.fn(note_text)}"
 
-    # ---------- POPULATION (ONLY IF ASKED EXPLICITLY) ----------
     if "population" in lp:
         return population_query_engine.query(prompt)
 
-    # ---------- EVERYTHING ELSE → INDIA PDF ----------
+   
     return pdf_query_engine.query(
         f"Answer strictly using India.pdf content:\n{prompt}"
     )
 
-# ======================================================
-# CLI LOOP
-# ======================================================
+
 print("\n🇮🇳 India Knowledge Assistant (PDF-powered)")
 print("Ask ANY question from India.pdf")
 print("Examples:")
@@ -120,3 +103,4 @@ while True:
         print(dispatch(prompt))
     except Exception as e:
         print("❌ Error:", e)
+
